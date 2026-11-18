@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Code Intelligence Platform</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+  .header { background: #1e293b; padding: 20px 40px; border-bottom: 1px solid #334155; }
+  .header h1 { font-size: 22px; color: #38bdf8; }
+  .header p { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+  .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+  .input-box { background: #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #334155; }
+  label { font-size: 13px; color: #94a3b8; display: block; margin-bottom: 8px; }
+  textarea { width: 100%; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; color: #e2e8f0; font-size: 14px; resize: vertical; min-height: 100px; outline: none; font-family: inherit; }
+  textarea:focus { border-color: #38bdf8; }
+  .btn { background: #38bdf8; color: #0f172a; border: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+  .btn:hover { background: #7dd3fc; }
+  .btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+  .result { background: #1e293b; border-radius: 12px; padding: 24px; border: 1px solid #334155; display: none; }
+  .result.show { display: block; }
+  .source-tag { display: inline-block; background: #0f172a; border: 1px solid #334155; color: #94a3b8; font-size: 11px; padding: 4px 10px; border-radius: 20px; margin-bottom: 16px; }
+  .answer { font-size: 14px; line-height: 1.8; color: #e2e8f0; white-space: pre-wrap; }
+  .loading { text-align: center; padding: 20px; color: #94a3b8; font-size: 14px; display: none; }
+  .loading.show { display: block; }
+  .dot { display: inline-block; animation: bounce 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
+  .error { color: #f87171; font-size: 13px; margin-top: 8px; display: none; }
+  .error.show { display: block; }
+  .chip { display: inline-block; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 12px; padding: 6px 12px; border-radius: 20px; margin: 4px; cursor: pointer; }
+  .chip:hover { border-color: #38bdf8; color: #38bdf8; }
+  .examples { margin-bottom: 24px; }
+  .examples p { font-size: 13px; color: #94a3b8; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Code Intelligence Platform</h1>
+  <p>Ask anything about your codebase - powered by AI + RAG</p>
+</div>
+<div class="container">
+  <div class="examples">
+    <p>Try asking:</p>
+    <span class="chip" onclick="setQ('How does the calculator handle division by zero?')">Division by zero</span>
+    <span class="chip" onclick="setQ('What methods does the Calculator class have?')">Calculator methods</span>
+    <span class="chip" onclick="setQ('Explain the add function')">Add function</span>
+    <span class="chip" onclick="setQ('What happens if I pass wrong types to divide?')">Type safety</span>
+  </div>
+  <div class="input-box">
+    <label>Ask a question about your codebase</label>
+    <textarea id="question" placeholder="e.g. How does the divide function work?"></textarea>
+    <button class="btn" id="btn" onclick="analyze()">Ask AI</button>
+    <div class="error" id="error">Something went wrong. Make sure your API server is running.</div>
+  </div>
+  <div class="loading" id="loading">
+    <span class="dot">●</span><span class="dot">●</span><span class="dot">●</span>
+    <p style="margin-top:8px">AI is analyzing your codebase...</p>
+  </div>
+  <div class="result" id="result">
+    <div id="sources"></div>
+    <div class="answer" id="answer"></div>
+  </div>
+</div>
+<script>
+  function setQ(text) { document.getElementById('question').value = text; }
+  async function analyze() {
+    const q = document.getElementById('question').value.trim();
+    if (!q) return;
+    document.getElementById('btn').disabled = true;
+    document.getElementById('result').classList.remove('show');
+    document.getElementById('error').classList.remove('show');
+    document.getElementById('loading').classList.add('show');
+    try {
+      const res = await fetch('http://127.0.0.1:8000/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q })
+      });
+      const data = await res.json();
+      document.getElementById('sources').innerHTML = data.sources.map(s => '<span class="source-tag">File: ' + s + '</span>').join(' ');
+      document.getElementById('answer').textContent = data.answer;
+      document.getElementById('result').classList.add('show');
+    } catch(e) {
+      document.getElementById('error').classList.add('show');
+    }
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('btn').disabled = false;
+  }
+  document.getElementById('question').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.ctrlKey) analyze();
+  });
+</script>
+</body>
+</html>
